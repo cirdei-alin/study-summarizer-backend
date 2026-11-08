@@ -74,3 +74,15 @@ With the server running, test the following requests using `/docs`:
 | `GET /api/documents` | HTTP 200 and the sample document list |
 | `GET /api/documents/D1` | HTTP 200 and document D1 |
 | `GET /api/documents/D99` | HTTP 404 and `{"detail":"Document not found"}` |
+
+## Automated tests
+
+From the repository directory, with dependencies installed and the
+virtual environment active, run:
+
+```bash
+python -m pytest
+```
+
+The tests check the health endpoint, sample document listing,
+document lookup, and the HTTP 404 response for a missing document.
