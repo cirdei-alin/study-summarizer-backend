@@ -37,3 +37,40 @@ def test_document_not_found(client):
 def test_document_id_must_be_a_number(client):
     response = client.get("/api/documents/abc")
     assert response.status_code == 422
+
+def test_create_document(client):
+    response = client.post(
+        "/api/documents",
+        json={"title": "Retele de calculatoare", "fileType": "docx"},
+    )
+    assert response.status_code == 201
+    assert response.json() == {"message": "Document uploaded successfully", "id": 3}
+
+    new_document = client.get("/api/documents/3").json()
+    assert new_document["title"] == "Retele de calculatoare"
+    assert new_document["fileType"] == "docx"
+    assert new_document["status"] == "pending"
+
+
+def test_create_document_rejects_unknown_file_type(client):
+    response = client.post("/api/documents", json={"title": "Poza", "fileType": "jpg"})
+    assert response.status_code == 422
+
+
+def test_create_document_requires_title(client):
+    response = client.post("/api/documents", json={"title": "", "fileType": "pdf"})
+    assert response.status_code == 422
+
+
+def test_delete_document(client):
+    response = client.delete("/api/documents/1")
+    assert response.status_code == 200
+    assert response.json() == {"message": "Document deleted successfully"}
+
+    assert client.get("/api/documents/1").status_code == 404
+    assert len(client.get("/api/documents").json()) == 1
+
+
+def test_delete_missing_document(client):
+    response = client.delete("/api/documents/99")
+    assert response.status_code == 404
