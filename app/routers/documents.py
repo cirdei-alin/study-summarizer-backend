@@ -1,25 +1,20 @@
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from database import get_db
-from models import Document
-from schemas import DocumentDetail, DocumentListItem
+from app.database import get_db
+from app.models import Document
+from app.schemas import DocumentDetail, DocumentListItem
 
-app = FastAPI()
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+router = APIRouter(prefix="/api/documents", tags=["documents"])
 
 
-@app.get("/api/documents", response_model=list[DocumentListItem])
+@router.get("", response_model=list[DocumentListItem])
 def list_documents(db: Session = Depends(get_db)):
     return db.scalars(select(Document).order_by(Document.id)).all()
 
 
-@app.get("/api/documents/{document_id}", response_model=DocumentDetail)
+@router.get("/{document_id}", response_model=DocumentDetail)
 def get_document(document_id: int, db: Session = Depends(get_db)):
     document = db.get(Document, document_id)
     if document is None:

@@ -109,7 +109,7 @@ python -m pip install -r requirements-dev.txt
 From the repository directory, with the virtual environment active:
 
 ```bash
-python -m uvicorn main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
 The API runs locally at http://127.0.0.1:8000.
