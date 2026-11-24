@@ -19,4 +19,10 @@ class DocumentDetail(DocumentListItem):
 
 class DocumentCreate(BaseModel):
     title: str = Field(min_length=1, max_length=255)
-    file_type: Literal["pdf", "docx", "txt"] = Field(validation_alias="fileType")
+    file_type: Literal["pdf", "docx", "txt"] = Field(validation_alias="fileType")\
+
+class DocumentUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    file_type: Literal["pdf", "docx", "txt"] | None = Field(
+        default=None, validation_alias="fileType"
+    )

@@ -74,3 +74,30 @@ def test_delete_document(client):
 def test_delete_missing_document(client):
     response = client.delete("/api/documents/99")
     assert response.status_code == 404
+
+def test_update_document_title(client):
+    response = client.patch("/api/documents/1", json={"title": "Inteligenta artificiala - curs 1"})
+    assert response.status_code == 200
+    document = response.json()
+    assert document["title"] == "Inteligenta artificiala - curs 1"
+    assert document["fileType"] == "pdf"
+
+    assert client.get("/api/documents/1").json()["title"] == "Inteligenta artificiala - curs 1"
+
+
+def test_update_document_file_type(client):
+    response = client.patch("/api/documents/2", json={"fileType": "docx"})
+    assert response.status_code == 200
+    document = response.json()
+    assert document["fileType"] == "docx"
+    assert document["title"] == "Notiuni de biologie"
+
+
+def test_update_document_rejects_empty_title(client):
+    response = client.patch("/api/documents/1", json={"title": ""})
+    assert response.status_code == 422
+
+
+def test_update_missing_document(client):
+    response = client.patch("/api/documents/99", json={"title": "Nu exista"})
+    assert response.status_code == 404
