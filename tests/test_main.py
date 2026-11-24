@@ -101,3 +101,12 @@ def test_update_document_rejects_empty_title(client):
 def test_update_missing_document(client):
     response = client.patch("/api/documents/99", json={"title": "Nu exista"})
     assert response.status_code == 404
+
+def test_cors_allows_frontend(client):
+    response = client.get("/health", headers={"Origin": "http://localhost:5173"})
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+def test_cors_blocks_unknown_site(client):
+    response = client.get("/health", headers={"Origin": "http://site-necunoscut.com"})
+    assert "access-control-allow-origin" not in response.headers
