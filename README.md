@@ -1,26 +1,32 @@
 # Study Summarizer — Backend
 
-Backend API for a web application that will help users generate
-summaries from uploaded study documents.
+Backend API for a web application that helps students generate
+summaries from their study documents.
 
-Built with Python and FastAPI.
+Built with Python, FastAPI and PostgreSQL.
 
 ## Current functionality
 
-The API currently provides:
+The API provides full CRUD for documents:
 
-- `GET /health` — checks that the API responds.
-- `GET /api/documents` — returns the sample document list.
-- `GET /api/documents/{document_id}` — returns a sample document by ID.
-  Returns HTTP 404 if the document does not exist.
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/health` | Checks that the API responds |
+| `GET` | `/api/documents` | Lists all documents |
+| `GET` | `/api/documents/{id}` | Returns one document, including its upload date |
+| `POST` | `/api/documents` | Creates a document (`title`, `fileType`: pdf, docx or txt) |
+| `PATCH` | `/api/documents/{id}` | Updates the title and/or file type |
+| `DELETE` | `/api/documents/{id}` | Deletes a document |
+
+Missing documents return HTTP 404. Invalid input (empty title,
+unsupported file type, non-numeric ID) returns HTTP 422.
 
 ## Development status
 
-Document data is currently stored in a hardcoded Python list for
-development and learning purposes.
+Documents are stored in PostgreSQL through SQLAlchemy.
+The React frontend lists, creates, edits and deletes documents.
 
-File upload, database persistence, and AI summarization are planned
-for later stages.
+Next stages: uploading real files (M2) and AI summaries (M3).
 
 ## Architecture
 
@@ -29,7 +35,7 @@ The Study Summarizer consists of two applications:
 - **Backend** (this repository) — a REST API built with Python and FastAPI.
   It stores documents, extracts their text and generates summaries with an AI model.
 - **Frontend** ([study-summarizer-frontend](https://github.com/cirdei-alin/study-summarizer-frontend))
-  — a web interface where users upload documents and read summaries. Planned: React.
+  — a web interface built with React and Vite.
 
 ### Components
 
@@ -44,11 +50,11 @@ flowchart LR
 
 | Component | Role | Status |
 | --- | --- | --- |
-| FastAPI backend | Exposes the REST API | In progress |
-| PostgreSQL + SQLAlchemy | Stores document details and summaries | Planned (M1) |
+| FastAPI backend | Exposes the REST API | Done: documents CRUD |
+| PostgreSQL + SQLAlchemy | Stores document details and summaries | Done (M1) |
 | File storage | Stores uploaded files on disk; Azure Blob Storage after deployment | Planned (M2) |
 | AI provider | Generates summaries; kept behind one service so the provider can be changed | Planned (M3) |
-| React frontend | User interface | Planned (M4) |
+| React frontend | User interface | In progress (M4) |
 
 ### Main flow: from upload to summary
 
@@ -59,49 +65,62 @@ flowchart LR
 5. The summary is saved in the database and the status becomes `summarized`.
 6. The frontend shows the summary.
 
-### Planned backend structure
+### Backend structure
 
 ```
 app/
-  main.py        # creates the FastAPI app
-  routers/       # API endpoints, grouped by resource
-  models/        # database tables (SQLAlchemy)
-  schemas/       # request and response formats (Pydantic)
-  services/      # logic: file storage, text extraction, AI
-  database.py    # database connection
+  main.py              # creates the FastAPI app, CORS, includes the routers
+  database.py          # database connection and sessions
+  models.py            # database tables (SQLAlchemy)
+  schemas.py           # request and response formats (Pydantic)
+  routers/
+    documents.py       # /api/documents endpoints
 tests/
+  conftest.py          # test fixture: separate test database with sample data
+  test_main.py         # API tests
+create_tables.py       # creates the database tables
 ```
+
+`models.py` and `schemas.py` will be split into folders when more
+tables are added (summaries, users).
 
 ## Project planning
 
-- [Milestones](https://github.com/cirdei-alin/study-summarizer-backend/milestones) — project stages and deadlines
+- [Milestones](https://github.com/cirdei-alin/study-summarizer-backend/milestones) — project stages
 - [Project board](https://github.com/users/cirdei-alin/projects/4) — to-do list and progress
 
 ## Requirements
 
-- Python 3.15.2 — the version used during development
+- Python 3.15 — the version used during development
+- PostgreSQL 18
 - Git
 
 ## Local setup — Windows with Git Bash
 
-Clone the repository and enter its directory:
+### 1. Get the code and install the dependencies
 
 ```bash
 git clone https://github.com/cirdei-alin/study-summarizer-backend.git
 cd study-summarizer-backend
-```
-
-Create and activate a virtual environment:
-
-```bash
 python -m venv .venv
 source .venv/Scripts/activate
+python -m pip install -r requirements-dev.txt
 ```
 
-Install the dependencies:
+### 2. Set up PostgreSQL
+
+1. Install PostgreSQL from https://www.postgresql.org/download/windows/
+   (include pgAdmin 4 and the Command Line Tools). Remember the password
+   you choose for the `postgres` user.
+2. In pgAdmin, create two databases:
+   - `study_summarizer` — used by the application
+   - `study_summarizer_test` — used only by the automated tests
+3. Copy `.env.example` to `.env` and replace `YOUR_PASSWORD` with your
+   PostgreSQL password. The `.env` file is ignored by Git.
+4. Create the tables:
 
 ```bash
-python -m pip install -r requirements-dev.txt
+python create_tables.py
 ```
 
 ## Run the application
@@ -126,18 +145,27 @@ With the server running, test the following requests using `/docs`:
 | Request | Expected result |
 | --- | --- |
 | `GET /health` | HTTP 200 and `{"status":"ok"}` |
-| `GET /api/documents` | HTTP 200 and the sample document list |
-| `GET /api/documents/D1` | HTTP 200 and document D1 |
-| `GET /api/documents/D99` | HTTP 404 and `{"detail":"Document not found"}` |
+| `POST /api/documents` with `{"title": "Test", "fileType": "pdf"}` | HTTP 201 and the new document ID |
+| `GET /api/documents` | HTTP 200 and the list of documents |
+| `PATCH /api/documents/{id}` with `{"title": "New title"}` | HTTP 200 and the updated document |
+| `DELETE /api/documents/{id}` | HTTP 200 and a confirmation message |
+| `GET /api/documents/999` | HTTP 404 and `{"detail":"Document not found"}` |
 
 ## Automated tests
-
-From the repository directory, with dependencies installed and the
-virtual environment active, run:
 
 ```bash
 python -m pytest
 ```
 
-The tests check the health endpoint, sample document listing,
-document lookup, and the HTTP 404 response for a missing document.
+The tests run against the separate `study_summarizer_test` database.
+Before each test, a fixture creates the tables and adds two sample
+documents; after the test, the tables are dropped, so every test starts
+from the same state.
+
+They cover listing, reading, creating, updating and deleting documents,
+validation errors (HTTP 422), missing documents (HTTP 404) and CORS.
+
+## Continuous integration
+
+GitHub Actions runs the tests on every push and pull request to `main`,
+using its own PostgreSQL service container.
